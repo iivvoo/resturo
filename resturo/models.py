@@ -13,7 +13,7 @@ class ModelResolver(object):
             app_label, model_class_name = model_path.split('.')
         except ValueError:
             raise ImproperlyConfigured(
-                "{0} must be of the form 'app_label.model_name'").format(name)
+                "{0} must be of the form 'app_label.model_name'".format(name))
 
         model = get_model(app_label, model_class_name)
         if model is None:
@@ -32,7 +32,7 @@ class ModelResolver(object):
                 model_path = settings.MODELS[name]
             except (KeyError, AttributeError):
                 raise ImproperlyConfigured(
-                    "no MODELS have been configured, {0} can't be resolved").format(name)
+                    "no MODELS have been configured, {0} can't be resolved".format(name))
 
             model = model_path
 

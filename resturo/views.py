@@ -5,8 +5,7 @@ from rest_framework.permissions import AllowAny
 from django.http import Http404
 
 from .permissions import IsStaffOrTargetUser
-from .serializers import (UserSerializer, UserCreateSerializer,
-                          OrganizationSerializer)
+from .serializers import UserSerializer, UserCreateSerializer
 
 
 class UserCreateView(generics.ListCreateAPIView):
@@ -54,7 +53,7 @@ class UserSelfView(generics.RetrieveAPIView):
 
 class OrganizationList(generics.ListCreateAPIView):
     model = None  # abstract. Resolve?
-    serializer_class = OrganizationSerializer
+    serializer_class = None
 
     def get_queryset(self):
         if self.request.user.is_superuser:
@@ -65,7 +64,7 @@ class OrganizationList(generics.ListCreateAPIView):
 
 class OrganizationDetail(generics.RetrieveUpdateDestroyAPIView):
     model = None  # abstract. Resolve?
-    serializer_class = OrganizationSerializer
+    serializer_class = None
 
     def get_queryset(self):
         return self.model.objects.all()

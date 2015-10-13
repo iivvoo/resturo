@@ -55,6 +55,7 @@ class Organization(models.Model):
     def __unicode__(self):
         return self.name
 
+    __str__ = __unicode__
 
 class Membership(models.Model):
     class Meta:

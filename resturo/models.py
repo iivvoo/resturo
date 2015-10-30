@@ -57,6 +57,7 @@ class Organization(models.Model):
 
     __str__ = __unicode__
 
+
 class Membership(models.Model):
     class Meta:
         abstract = True

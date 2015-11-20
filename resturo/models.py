@@ -1,7 +1,7 @@
 from django.db import models
 
 from django.conf import settings
-from django.db.models import get_model
+from django.apps import apps
 from django.core.exceptions import ImproperlyConfigured
 
 
@@ -15,7 +15,7 @@ class ModelResolver(object):
             raise ImproperlyConfigured(
                 "{0} must be of the form 'app_label.model_name'".format(name))
 
-        model = get_model(app_label, model_class_name)
+        model = apps.get_model(app_label, model_class_name)
         if model is None:
             raise ImproperlyConfigured(
                 "{0} refers to model '{1}' that has not been "

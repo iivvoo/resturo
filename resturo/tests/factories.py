@@ -2,12 +2,12 @@ import factory
 from django.contrib.auth import get_user_model
 
 
-class OrganizationFactory(factory.Factory):
+class OrganizationFactory(factory.django.DjangoModelFactory):
 
     name = 'Acme INC.'
 
 
-class UserFactory(factory.Factory):
+class UserFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = get_user_model()
 

@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from rest_framework_jwt.settings import api_settings
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -8,8 +9,6 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'first_name', 'last_name', 'email',)
         read_only_fields = ('is_staff', 'is_superuser',
                             'is_active', 'date_joined',)
-
-from rest_framework_jwt.settings import api_settings
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

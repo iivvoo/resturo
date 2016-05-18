@@ -5,5 +5,7 @@ from . import views
 urlpatterns = patterns(
     '',
     url(r'self', views.UserSelfView.as_view(), name='resturo_user_self'),
+    url(r'reset', views.PasswordResetView.as_view(),
+        name='resturo_user_reset'),
     url(r'', views.UserCreateView.as_view(), name='resturo_user_create'),
 )

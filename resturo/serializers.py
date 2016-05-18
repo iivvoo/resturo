@@ -2,6 +2,8 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 
+from .signals import user_rest_created
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -30,6 +32,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         user.set_password(validated_data['password'])
         user.save()
 
+        user_rest_created.send_robust(sender=None, user=user)
         #  XXX should be jwt / token agnostic!
 
         jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER

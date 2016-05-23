@@ -86,20 +86,21 @@ class PasswordResetView(APIView):
         password = data.get('password', '')
 
         if not password.strip():
-            return response.Response({"error": "invalid password"},
+            return response.Response({"non_field_errors":
+                                      ["invalid password"]},
                                      status=status.HTTP_400_BAD_REQUEST)
 
         try:
             uid, token = token.split("-", 1)
             uid = int(uid)
         except ValueError:
-            return response.Response({"error": "invalid token"},
+            return response.Response({"non_field_errors": ["invalid token"]},
                                      status=status.HTTP_400_BAD_REQUEST)
         user = None
         try:
             user = User.objects.get(pk=uid)
         except User.DoesNotExist:
-            return response.Response({"error": "invalid token"},
+            return response.Response({"non_field_errors": ["invalid token"]},
                                      status=status.HTTP_400_BAD_REQUEST)
 
         if default_token_generator.check_token(user, token):
@@ -107,7 +108,7 @@ class PasswordResetView(APIView):
             user.save()
             return Response({"status": "ok"})
 
-        return response.Response({"error": "invalid token"},
+        return response.Response({"non_field_errors": ["invalid token"]},
                                  status=status.HTTP_400_BAD_REQUEST)
 
 

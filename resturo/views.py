@@ -10,6 +10,7 @@ from django.contrib.auth.tokens import default_token_generator
 from .serializers import UserSerializer, UserCreateSerializer
 from .serializers import PasswordResetSerializer
 from .signals import user_password_reset, user_rest_created
+from .signals import user_password_confirm
 
 
 class UserCreateView(generics.ListCreateAPIView):
@@ -106,6 +107,7 @@ class PasswordResetView(APIView):
         if default_token_generator.check_token(user, token):
             user.set_password(password)
             user.save()
+            user_password_confirm.send_robust(sender=None, user=user)
             return Response({"status": "ok"})
 
         return response.Response({"non_field_errors": ["invalid token"]},

@@ -6,6 +6,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 
 class ModelResolver(object):
+
     def __call__(self, name):
         model_path = getattr(self, name)
 
@@ -44,6 +45,7 @@ modelresolver = ModelResolver()
 
 
 class Organization(models.Model):
+
     class Meta:
         abstract = True
 
@@ -59,9 +61,17 @@ class Organization(models.Model):
 
 
 class Membership(models.Model):
+
     class Meta:
         abstract = True
 
     user = models.ForeignKey(modelresolver.User)
     organization = models.ForeignKey(modelresolver.Organization)
     role = models.IntegerField(default=0)
+
+
+class EmailVerification(models.Model):
+    user = models.OneToOneField(modelresolver.User,
+                                related_name="verification")
+    previous = models.EmailField(default='')
+    verified = models.BooleanField(default=False)

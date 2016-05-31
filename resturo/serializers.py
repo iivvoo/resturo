@@ -2,13 +2,25 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 
+from .models import EmailVerification
+
 
 class UserSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email',)
+        fields = ('id', 'username', 'first_name', 'last_name', 'email',
+                  'verified')
         read_only_fields = ('is_staff', 'is_superuser',
                             'is_active', 'date_joined',)
+
+    verified = serializers.SerializerMethodField()
+
+    def get_verified(self, obj):
+        try:
+            return obj.verification.verified
+        except EmailVerification.DoesNotExist:
+            return True
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -42,6 +54,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
+
     class Meta:
         fields = ("id", "name")
 

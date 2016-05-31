@@ -157,12 +157,14 @@ class EmailVerificationView(APIView):
         """
         token = request.GET.get('token', '').strip().lower()
         if token:
-            verification = EmailVerification.objects.get(token=token)
-            if not verification.verified:
-                verification.verified = True
-                verification.save()
-                # user_password_reset.send_robust(sender=None, user=user)
-                return Response({"status": "ok"})
+            try:
+                verification = EmailVerification.objects.get(token=token)
+                if not verification.verified:
+                    verification.verified = True
+                    verification.save()
+                    return Response({"status": "ok"})
+            except EmailVerification.DoesNotExist:
+                pass
         return response.Response({"non_field_errors": ["invalid token"]},
                                  status=status.HTTP_400_BAD_REQUEST)
 

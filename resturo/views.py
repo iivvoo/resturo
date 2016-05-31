@@ -11,6 +11,7 @@ from .serializers import UserSerializer, UserCreateSerializer
 from .serializers import PasswordResetSerializer
 from .signals import user_password_reset, user_rest_created
 from .signals import user_password_confirm
+from .models import EmailVerification
 
 
 class UserCreateView(generics.ListCreateAPIView):
@@ -110,6 +111,26 @@ class PasswordResetView(APIView):
             user_password_confirm.send_robust(sender=None, user=user)
             return Response({"status": "ok"})
 
+        return response.Response({"non_field_errors": ["invalid token"]},
+                                 status=status.HTTP_400_BAD_REQUEST)
+
+
+class EmailVerificationView(APIView):
+    authentication_classes = ()
+    permission_classes = (AllowAny,)
+
+    def get(self, request, format=None):
+        """
+            Verify email
+        """
+        token = request.GET.get('token', '').strip().lower()
+        if token:
+            verification = EmailVerification.objects.get(token=token)
+            if not verification.verified:
+                verification.verified = True
+                verification.save()
+                # user_password_reset.send_robust(sender=None, user=user)
+                return Response({"status": "ok"})
         return response.Response({"non_field_errors": ["invalid token"]},
                                  status=status.HTTP_400_BAD_REQUEST)
 

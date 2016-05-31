@@ -1,4 +1,8 @@
+import uuid
+
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 from django.conf import settings
 from django.apps import apps
@@ -75,3 +79,21 @@ class EmailVerification(models.Model):
                                 related_name="verification")
     previous = models.EmailField(default='')
     verified = models.BooleanField(default=False)
+    token = models.CharField(max_length=36, default='')
+
+    def reset(self):
+        """ reset verification, meaning state becomes unverified
+            and a new token is genereated
+        """
+        self.verified = False
+        self.token = str(uuid.uuid4())
+        self.save()
+
+
+@receiver(post_save, sender=modelresolver.User,
+          dispatch_uid="resturo.models.reset_verification")
+def reset_verification(sender, instance, created=False, *args, **kwargs):
+    if getattr(settings, "RESTURO_VERIFY_EMAIL", False):
+        if created:
+            verification = EmailVerification(user=instance)
+            verification.reset()

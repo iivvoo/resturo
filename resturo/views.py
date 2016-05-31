@@ -1,16 +1,17 @@
 from django.contrib.auth.models import User
 from rest_framework import generics, response, status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from django.http import Http404
 from django.contrib.auth.tokens import default_token_generator
+from django.conf import settings
 
 from .serializers import UserSerializer, UserCreateSerializer
 from .serializers import PasswordResetSerializer
 from .signals import user_password_reset, user_rest_created
-from .signals import user_password_confirm
+from .signals import user_password_confirm, user_rest_emailchange
 from .models import EmailVerification
 
 
@@ -47,6 +48,37 @@ class UserCreateView(generics.ListCreateAPIView):
             return self.model.objects.all()
         else:
             return self.model.objects.filter(id=self.request.user.id)
+
+
+class UserDetailView(generics.RetrieveUpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UserSerializer
+    model = User
+
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return self.model.objects.all()
+        else:
+            return self.model.objects.filter(id=self.request.user.id)
+
+    def update(self, request, *args, **kwargs):
+        """ Check if email address has changed. If so, fire signal """
+        instance_before = self.get_object()
+        res = super().update(request, *args, **kwargs)
+
+        if not getattr(settings, "RESTURO_VERIFY_EMAIL", False):
+            return res
+
+        instance_after = self.get_object()
+
+        if instance_before.email.strip().lower() != \
+           instance_after.email.strip().lower():
+            verification, _ = EmailVerification.objects.get_or_create(
+                user=instance_after)
+            verification.previous = instance_before.email
+            verification.reset()
+            user_rest_emailchange.send_robust(sender=None, user=instance_after)
+        return res
 
 
 class UserSelfView(generics.RetrieveAPIView):

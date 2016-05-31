@@ -12,4 +12,3 @@ class Membership(BaseMembership):
         define some roles
     """
     ROLE_MEMBER = 1
-

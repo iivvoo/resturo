@@ -14,3 +14,18 @@ urlpatterns = patterns(
         views.UserDetailView.as_view(),
         name='resturo_user_detail')
 )
+
+user_patterns = urlpatterns
+
+organizations_patterns = patterns(
+    '',
+
+    url(r'^$', views.OrganizationList.as_view(),
+        name='resturo_organization_list'),
+    url(r'^(?P<pk>[0-9]+)/$',
+        views.OrganizationDetail.as_view(),
+        name='resturo_organization_details'),
+    url(r'^(?P<pk>[0-9]+)/invite$',
+        views.OrganizationInvite.as_view(),
+        name='resturo_organization_invite'),
+)

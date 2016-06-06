@@ -10,9 +10,13 @@ from django.conf import settings
 
 from .serializers import UserSerializer, UserCreateSerializer
 from .serializers import PasswordResetSerializer
+from .serializers import OrganizationSerializer
+from .serializers import InviteSerializer
+
 from .signals import user_password_reset, user_rest_created
 from .signals import user_password_confirm, user_rest_emailchange
 from .models import EmailVerification
+from .models import modelresolver
 
 
 class UserCreateView(generics.ListCreateAPIView):
@@ -170,8 +174,8 @@ class EmailVerificationView(APIView):
 
 
 class OrganizationList(generics.ListCreateAPIView):
-    model = None  # abstract. Resolve?
-    serializer_class = None
+    model = modelresolver.Organization
+    serializer_class = OrganizationSerializer
 
     def get_queryset(self):
         if self.request.user.is_superuser:
@@ -181,8 +185,48 @@ class OrganizationList(generics.ListCreateAPIView):
 
 
 class OrganizationDetail(generics.RetrieveUpdateDestroyAPIView):
-    model = None  # abstract. Resolve?
-    serializer_class = None
+    model = modelresolver("Organization")
+    serializer_class = OrganizationSerializer
 
     def get_queryset(self):
         return self.model.objects.all()
+
+
+class OrganizationInvite(generics.UpdateAPIView):
+    model = modelresolver("Organization")
+    serializer_class = InviteSerializer
+
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return self.model.objects.all()
+        return self.model.objects.all()
+
+    def update(self, request, *args, **kwargs):
+        """ create, accept or reject an invite """
+        # import pdb; pdb.set_trace()
+        org = self.get_object()
+        data = self.serializer_class(request.data).data
+
+        handle = data.get('handle')
+        email = handle if '@' in handle else ""
+        role = data.get('role', 0)
+        strict = data.get('strict', False)
+
+        if handle:
+            user = User.objects.filter(email=handle).first()
+            if not user:
+                user = User.objects.filter(username=handle).first()
+
+            if user:
+                if org in user.organizations.all():
+                    return response.Response(
+                        {"non_field_errors": ["User is already member"]},
+                        status=status.HTTP_400_BAD_REQUEST)
+            invite = modelresolver('Invite')(user=user, email=email,
+                                          role=role, strict=strict,
+                                          organization=org)
+            invite.save()
+
+            # if user and user.is_active:
+            #     user_password_reset.send_robust(sender=None, user=user)
+        return Response({"status": "ok"})

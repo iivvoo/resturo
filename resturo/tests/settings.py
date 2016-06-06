@@ -35,7 +35,8 @@ MIDDLEWARE_CLASSES = [
 
 MODELS = {
     'Organization': 'tests.Organization',
-    'Membership': 'tests.Membership'
+    'Membership': 'tests.Membership',
+    'Invite': 'tests.Invite'
 }
 
 INSTALLED_APPS = [

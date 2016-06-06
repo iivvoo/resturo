@@ -90,6 +90,20 @@ class EmailVerification(models.Model):
         self.save()
 
 
+class Invite(models.Model):
+
+    class Meta:
+        abstract = True
+
+    user = models.ForeignKey(modelresolver.User, related_name="invites",
+                             null=True)
+    organization = models.ForeignKey(modelresolver.Organization)
+    email = models.EmailField(blank=True)
+    strict = models.BooleanField(default=False)
+    role = models.IntegerField(default=0)
+    token = models.CharField(max_length=36, default='')
+
+
 @receiver(post_save, sender=modelresolver.User,
           dispatch_uid="resturo.models.reset_verification")
 def reset_verification(sender, instance, created=False, *args, **kwargs):

@@ -10,7 +10,7 @@ from mock_django.signals import mock_signal_receiver
 
 from .factories import OrganizationFactory as OrganizationFactoryBase
 from .factories import UserFactory
-from .models import Organization
+from .models import Organization, Invite
 from resturo.models import EmailVerification
 
 from resturo.signals import user_password_reset, user_rest_created
@@ -97,3 +97,19 @@ class TestEmailVerify(APITestCase):
         self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
         v = EmailVerification.objects.get(pk=v.id)
         self.assertFalse(v.verified)
+
+
+class TestInvite(APITestCase):
+
+    def test_simple(self):
+        o = OrganizationFactory.create()
+
+        response = self.client.put(reverse('resturo_organization_invite',
+                                           kwargs={'pk': o.pk}),
+                                   {"handle": "test@example.com",
+                                    "role": 2,
+                                    "strict": False})
+
+        self.assertEquals(response.status_code, status.HTTP_200_OK)
+        self.assertEquals(Invite.objects.count(), 1)
+        self.assertEquals(Invite.objects.first().organization, o)

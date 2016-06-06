@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 
-from .models import EmailVerification
+from .models import EmailVerification, modelresolver
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -56,9 +56,20 @@ class UserCreateSerializer(serializers.ModelSerializer):
 class OrganizationSerializer(serializers.ModelSerializer):
 
     class Meta:
+        model = modelresolver('Organization')
         fields = ("id", "name")
 
 
 class PasswordResetSerializer(serializers.Serializer):
+
+    class Meta:
+        model = modelresolver('Organization')
+
     token = serializers.CharField()
     password = serializers.CharField()
+
+
+class InviteSerializer(serializers.Serializer):
+    handle = serializers.CharField()
+    strict = serializers.BooleanField()
+    role = serializers.IntegerField()

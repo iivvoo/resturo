@@ -74,7 +74,15 @@ setup(
     author_email=author_email,
     packages=get_packages(package),
     package_data=get_package_data(package),
-    install_requires=['factory_boy'],
+    install_requires=[
+        'factory_boy',
+        'Django>=1.7.0',
+        'djangorestframework>=3.1.0',
+        'djangorestframework_jwt>= 1.7.2',
+        'six>=1.9.0',
+    ],
+    test_suite='runtests.runtests',
+
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Environment :: Web Environment',

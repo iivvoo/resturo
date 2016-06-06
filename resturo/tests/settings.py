@@ -3,7 +3,7 @@ import sys
 
 PROJECT_ROOT = os.path.abspath(os.path.split(os.path.split(__file__)[0])[0])
 
-ROOT_URLCONF = 'urls'
+ROOT_URLCONF = 'resturo.tests.urls'
 STATIC_URL = '/static/'
 STATIC_ROOT = '%s/staticserve' % PROJECT_ROOT
 STATICFILES_DIRS = (

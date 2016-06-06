@@ -5,8 +5,8 @@ import django
 from django.test.utils import get_runner
 from django.conf import settings
 
-os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.settings'
-test_dir = os.path.join(os.path.dirname(__file__), 'resturo')
+os.environ['DJANGO_SETTINGS_MODULE'] = 'resturo.tests.settings'
+test_dir = os.path.join(os.path.dirname(__file__), '.')
 sys.path.insert(0, test_dir)
 
 

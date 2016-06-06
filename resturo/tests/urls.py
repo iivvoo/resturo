@@ -1,1 +1,1 @@
-from resturo.urls import url_patterns  # noqa
+from resturo.urls import urlpatterns  # noqa

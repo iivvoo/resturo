@@ -97,6 +97,7 @@ class Invite(models.Model):
 
     user = models.ForeignKey(modelresolver.User, related_name="invites",
                              null=True)
+    inviter = models.ForeignKey(modelresolver.User, related_name="invited")
     organization = models.ForeignKey(modelresolver.Organization)
     email = models.EmailField(blank=True)
     strict = models.BooleanField(default=False)

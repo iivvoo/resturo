@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import generics, response, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import BasePermission
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
@@ -195,9 +196,17 @@ class OrganizationDetail(generics.RetrieveUpdateDestroyAPIView):
         return self.model.objects.all()
 
 
+class OrganizationPermission(BasePermission):
+
+    def has_permission(self, request, view):
+        return modelresolver('Membership').objects.filter(
+            organization=view.get_object(), user=request.user).exists()
+
+
 class OrganizationInvite(generics.CreateAPIView):
     model = modelresolver("Organization")
     serializer_class = InviteSerializer
+    permission_classes = (IsAuthenticated, OrganizationPermission)
 
     def get_queryset(self):
         if self.request.user.is_superuser:
@@ -235,7 +244,8 @@ class OrganizationInvite(generics.CreateAPIView):
                 {"handle": ["Does not match user or existing email"]},
                 status=status.HTTP_400_BAD_REQUEST)
 
-        invite = modelresolver('Invite')(user=user, email=email,
+        invite = modelresolver('Invite')(user=user, inviter=self.request.user,
+                                         email=email,
                                          role=role, strict=strict,
                                          organization=org)
         invite.save()
@@ -252,6 +262,7 @@ class OrganizationInvite(generics.CreateAPIView):
 
 class OrganizationJoin(APIView):
     serializer_class = JoinSerializer
+    permission_classes = (IsAuthenticated, )
 
     def get_queryset(self):
         if self.request.user.is_superuser:
@@ -279,7 +290,7 @@ class OrganizationJoin(APIView):
 
         if data['action'] == self.serializer_class.JOIN_ACCEPT:
             m, c = membershipclass.objects.get_or_create(
-                user=invite.user,
+                user=self.request.user,
                 organization=invite.organization)
             if not c:
                 return response.Response(

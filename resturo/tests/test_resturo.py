@@ -110,7 +110,8 @@ class TestInviteModel(TestCase):
         """ a new invite should get a token """
         o = OrganizationFactory.create()
         u = UserFactory.create()
-        i = Invite(organization=o, user=u)
+        inviter = UserFactory.create()
+        i = Invite(organization=o, user=u, inviter=inviter)
         i.save()
 
         self.assertTrue(i.token)
@@ -125,31 +126,31 @@ class TestInviteModel(TestCase):
 
 
 class TestCreateInvite(APITestCase):
-
     # for now: invites only for admin
     # add inviter to invite?
     # embed invites in user serialization (?), or make it separate endpoint?
-    def test_working_invite(self):
-        o = OrganizationFactory.create()
 
+    def setUp(self):
+        self.m = MembershipFactory.create()
+        self.o = self.m.organization
+        self.u = self.m.user
+        self.client.force_login(self.u)
+
+    def test_working_invite(self):
         response = self.client.post(reverse('resturo_organization_invite',
-                                            kwargs={'pk': o.pk}),
+                                            kwargs={'pk': self.o.pk}),
                                     {"handle": "test@example.com",
                                      "role": 2,
                                      "strict": False})
 
         self.assertEquals(response.status_code, status.HTTP_200_OK)
         self.assertEquals(Invite.objects.count(), 1)
-        self.assertEquals(Invite.objects.first().organization, o)
+        self.assertEquals(Invite.objects.first().organization, self.o)
 
     def test_missing_handle(self):
-        o = OrganizationFactory.create()
-
         response = self.client.post(reverse('resturo_organization_invite',
-                                            kwargs={'pk': o.pk}),
-                                    {
-            "role": 2,
-            "strict": False})
+                                            kwargs={'pk': self.o.pk}),
+                                    {"role": 2, "strict": False})
 
         self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEquals(Invite.objects.count(), 0)
@@ -157,10 +158,9 @@ class TestCreateInvite(APITestCase):
     def test_not_user_and_not_email(self):
         """ if the handle doesn't match a user, it must look like an
             email """
-        o = OrganizationFactory.create()
 
         response = self.client.post(reverse('resturo_organization_invite',
-                                            kwargs={'pk': o.pk}),
+                                            kwargs={'pk': self.o.pk}),
                                     {"handle": "does not exist",
                                      "role": 2,
                                      "strict": False})
@@ -169,7 +169,8 @@ class TestCreateInvite(APITestCase):
         self.assertEquals(Invite.objects.count(), 0)
 
     def test_already_member(self):
-        m = MembershipFactory.create(user__email="test@example.com")
+        m = MembershipFactory.create(user__email="test@example.com",
+                                     organization=self.o)
 
         response = self.client.post(reverse('resturo_organization_invite',
                                             kwargs={'pk': m.organization.pk}),
@@ -186,11 +187,10 @@ class TestCreateInvite(APITestCase):
         """ Existing user gets invited should fire user_existing_invite
             signal """
         u = UserFactory.create(username="test", email="test@example.com")
-        o = OrganizationFactory.create(name="Second org")
 
         with mock_signal_receiver(user_existing_invite) as receiver:
             self.client.post(reverse('resturo_organization_invite',
-                                     kwargs={'pk': o.pk}),
+                                     kwargs={'pk': self.o.pk}),
                              {"handle": u.username,
                               "role": 2,
                               "strict": False})
@@ -199,23 +199,38 @@ class TestCreateInvite(APITestCase):
     def test_email_signal_fired(self):
         """ Non existing user gets invited by email, should fire
             user_email_invite signal """
-        o = OrganizationFactory.create(name="Second org")
 
         with mock_signal_receiver(user_email_invite) as receiver:
             self.client.post(reverse('resturo_organization_invite',
-                                     kwargs={'pk': o.pk}),
+                                     kwargs={'pk': self.o.pk}),
                              {"handle": "test@example.com",
                               "role": 2,
                               "strict": False})
             self.assertEqual(receiver.call_count, 1)
 
+    def test_must_be_member_to_invite(self):
+        """ You cannot invite someone into an organization your not member
+            yourself of """
+        organization = OrganizationFactory.create()
+        response = self.client.post(reverse('resturo_organization_invite',
+                                            kwargs={'pk': organization.pk}),
+                                    {"handle": "test@example.com",
+                                     "role": 2,
+                                     "strict": False})
+
+        self.assertEquals(response.status_code, status.HTTP_403_FORBIDDEN)
+
 
 class TestAcceptInvite(APITestCase):
+
+    def setUp(self):
+        self.u = UserFactory.create()
+        self.client.force_login(self.u)
 
     # for now: invites only for admin
     # embed invites in user serialization (?), or make it separate endpoint?
     def test_working_join(self):
-        i = InviteFactory.create()
+        i = InviteFactory.create(user=self.u)
 
         response = self.client.post(reverse('resturo_organization_join'),
                                     {"token": i.token,
@@ -238,7 +253,7 @@ class TestAcceptInvite(APITestCase):
 
         self.assertEquals(response.status_code, status.HTTP_200_OK)
         # There shouldn't be a membership now
-        self.assertFalse(Membership.objects.filter(user=i.user,
+        self.assertFalse(Membership.objects.filter(user=self.u,
                                                    organization=i.organization
                                                    ).exists())
         # The invite should be gone
@@ -246,8 +261,8 @@ class TestAcceptInvite(APITestCase):
 
     def test_user_already_member(self):
         """ invites cannot be used on members or to change roles """
-        m = MembershipFactory.create(role=0)
-        i = InviteFactory.create(user=m.user, organization=m.organization,
+        m = MembershipFactory.create(role=0, user=self.u)
+        i = InviteFactory.create(user=self.u, organization=m.organization,
                                  role=1)
 
         response = self.client.post(reverse('resturo_organization_join'),
@@ -256,11 +271,11 @@ class TestAcceptInvite(APITestCase):
 
         self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
         # There should be only one membership
-        self.assertEquals(Membership.objects.filter(user=i.user,
+        self.assertEquals(Membership.objects.filter(user=self.u,
                                                     organization=i.organization
                                                     ).count(), 1)
         # and the role should remain unchanged
-        self.assertEquals(Membership.objects.filter(user=i.user,
+        self.assertEquals(Membership.objects.filter(user=self.u,
                                                     organization=i.organization
                                                     ).first().role, 0)
         # The invite is still present
@@ -269,8 +284,8 @@ class TestAcceptInvite(APITestCase):
     def test_user_already_member_reject(self):
         """ invites cannot be used on members or to change roles.
             The invite can be rejected """
-        m = MembershipFactory.create(role=0)
-        i = InviteFactory.create(user=m.user, organization=m.organization,
+        m = MembershipFactory.create(role=0, user=self.u)
+        i = InviteFactory.create(user=self.u, organization=m.organization,
                                  role=1)
 
         response = self.client.post(reverse('resturo_organization_join'),
@@ -279,3 +294,31 @@ class TestAcceptInvite(APITestCase):
 
         self.assertEquals(response.status_code, status.HTTP_200_OK)
         self.assertEquals(Invite.objects.count(), 0)
+
+    def test_invite_accept_other_user(self):
+        """ an invite can be accepted by a different user than in the
+            invite (unless the invite is 'strict' (not supported yet)) """
+        i = InviteFactory.create()
+
+        response = self.client.post(reverse('resturo_organization_join'),
+                                    {"token": i.token,
+                                     "action": JoinSerializer.JOIN_ACCEPT})
+
+        self.assertEquals(response.status_code, status.HTTP_200_OK)
+        # There should be a membership now
+        self.assertTrue(Membership.objects.filter(user=self.u,
+                                                  organization=i.organization
+                                                  ).exists())
+        # The invite should be gone
+        self.assertEquals(Invite.objects.count(), 0)
+
+    def test_invite_not_auth(self):
+        """ you must be authenticated if you want to accept an invite """
+        self.client.logout()
+        i = InviteFactory.create()
+
+        response = self.client.post(reverse('resturo_organization_join'),
+                                    {"token": i.token,
+                                     "action": JoinSerializer.JOIN_ACCEPT})
+
+        self.assertEquals(response.status_code, status.HTTP_403_FORBIDDEN)

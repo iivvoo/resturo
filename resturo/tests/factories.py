@@ -17,7 +17,8 @@ class UserFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = get_user_model()
 
-    username = 'jdoe'
+    username = factory.Sequence(lambda n: "user_%d" % n)
+
     first_name = 'John'
     last_name = 'Doe'
     email = 'john.doe@example.com'
@@ -39,5 +40,6 @@ class InviteFactory(factory.django.DjangoModelFactory):
 
     organization = factory.SubFactory(OrganizationFactory)
     user = factory.SubFactory(UserFactory)
+    inviter = factory.SubFactory(UserFactory)
     strict = False
     role = 0

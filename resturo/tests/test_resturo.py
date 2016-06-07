@@ -132,11 +132,11 @@ class TestCreateInvite(APITestCase):
     def test_working_invite(self):
         o = OrganizationFactory.create()
 
-        response = self.client.put(reverse('resturo_organization_invite',
-                                           kwargs={'pk': o.pk}),
-                                   {"handle": "test@example.com",
-                                    "role": 2,
-                                    "strict": False})
+        response = self.client.post(reverse('resturo_organization_invite',
+                                            kwargs={'pk': o.pk}),
+                                    {"handle": "test@example.com",
+                                     "role": 2,
+                                     "strict": False})
 
         self.assertEquals(response.status_code, status.HTTP_200_OK)
         self.assertEquals(Invite.objects.count(), 1)
@@ -145,9 +145,9 @@ class TestCreateInvite(APITestCase):
     def test_missing_handle(self):
         o = OrganizationFactory.create()
 
-        response = self.client.put(reverse('resturo_organization_invite',
-                                           kwargs={'pk': o.pk}),
-                                   {
+        response = self.client.post(reverse('resturo_organization_invite',
+                                            kwargs={'pk': o.pk}),
+                                    {
             "role": 2,
             "strict": False})
 
@@ -159,11 +159,11 @@ class TestCreateInvite(APITestCase):
             email """
         o = OrganizationFactory.create()
 
-        response = self.client.put(reverse('resturo_organization_invite',
-                                           kwargs={'pk': o.pk}),
-                                   {"handle": "does not exist",
-                                    "role": 2,
-                                    "strict": False})
+        response = self.client.post(reverse('resturo_organization_invite',
+                                            kwargs={'pk': o.pk}),
+                                    {"handle": "does not exist",
+                                     "role": 2,
+                                     "strict": False})
 
         self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEquals(Invite.objects.count(), 0)
@@ -171,11 +171,11 @@ class TestCreateInvite(APITestCase):
     def test_already_member(self):
         m = MembershipFactory.create(user__email="test@example.com")
 
-        response = self.client.put(reverse('resturo_organization_invite',
-                                           kwargs={'pk': m.organization.pk}),
-                                   {"handle": "test@example.com",
-                                    "role": 2,
-                                    "strict": False})
+        response = self.client.post(reverse('resturo_organization_invite',
+                                            kwargs={'pk': m.organization.pk}),
+                                    {"handle": "test@example.com",
+                                     "role": 2,
+                                     "strict": False})
 
         self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEquals(response.data['non_field_errors'][0],
@@ -189,11 +189,11 @@ class TestCreateInvite(APITestCase):
         o = OrganizationFactory.create(name="Second org")
 
         with mock_signal_receiver(user_existing_invite) as receiver:
-            self.client.put(reverse('resturo_organization_invite',
-                                    kwargs={'pk': o.pk}),
-                            {"handle": u.username,
-                             "role": 2,
-                             "strict": False})
+            self.client.post(reverse('resturo_organization_invite',
+                                     kwargs={'pk': o.pk}),
+                             {"handle": u.username,
+                              "role": 2,
+                              "strict": False})
             self.assertEqual(receiver.call_count, 1)
 
     def test_email_signal_fired(self):
@@ -202,11 +202,11 @@ class TestCreateInvite(APITestCase):
         o = OrganizationFactory.create(name="Second org")
 
         with mock_signal_receiver(user_email_invite) as receiver:
-            self.client.put(reverse('resturo_organization_invite',
-                                    kwargs={'pk': o.pk}),
-                            {"handle": "test@example.com",
-                             "role": 2,
-                             "strict": False})
+            self.client.post(reverse('resturo_organization_invite',
+                                     kwargs={'pk': o.pk}),
+                             {"handle": "test@example.com",
+                              "role": 2,
+                              "strict": False})
             self.assertEqual(receiver.call_count, 1)
 
 

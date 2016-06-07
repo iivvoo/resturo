@@ -195,7 +195,7 @@ class OrganizationDetail(generics.RetrieveUpdateDestroyAPIView):
         return self.model.objects.all()
 
 
-class OrganizationInvite(generics.UpdateAPIView):
+class OrganizationInvite(generics.CreateAPIView):
     model = modelresolver("Organization")
     serializer_class = InviteSerializer
 
@@ -204,7 +204,7 @@ class OrganizationInvite(generics.UpdateAPIView):
             return self.model.objects.all()
         return self.model.objects.all()
 
-    def update(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         """ create, accept or reject an invite """
         org = self.get_object()
         deserialized = self.serializer_class(data=request.data)

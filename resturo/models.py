@@ -103,6 +103,11 @@ class Invite(models.Model):
     role = models.IntegerField(default=0)
     token = models.CharField(max_length=36, default='')
 
+    def save(self, *args, **kwargs):
+        if self.pk is None and self.token == '':
+            self.token = str(uuid.uuid4())
+        return super().save(*args, **kwargs)
+
 
 @receiver(post_save, sender=modelresolver.User,
           dispatch_uid="resturo.models.reset_verification")

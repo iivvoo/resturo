@@ -28,4 +28,7 @@ organizations_patterns = patterns(
     url(r'^(?P<pk>[0-9]+)/invite$',
         views.OrganizationInvite.as_view(),
         name='resturo_organization_invite'),
+    url(r'^join$',
+        views.OrganizationJoin.as_view(),
+        name='resturo_organization_join'),
 )

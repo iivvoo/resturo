@@ -73,3 +73,12 @@ class InviteSerializer(serializers.Serializer):
     handle = serializers.CharField()
     strict = serializers.BooleanField()
     role = serializers.IntegerField()
+
+
+class JoinSerializer(serializers.Serializer):
+    JOIN_ACCEPT = 1
+    JOIN_REJECT = 2
+
+    token = serializers.CharField()
+    action = serializers.ChoiceField(choices=(JOIN_ACCEPT, JOIN_REJECT),
+                                     default=JOIN_ACCEPT)

@@ -12,9 +12,12 @@ from .serializers import UserSerializer, UserCreateSerializer
 from .serializers import PasswordResetSerializer
 from .serializers import OrganizationSerializer
 from .serializers import InviteSerializer
+from .serializers import JoinSerializer
 
 from .signals import user_password_reset, user_rest_created
 from .signals import user_password_confirm, user_rest_emailchange
+from .signals import user_existing_invite, user_email_invite
+
 from .models import EmailVerification
 from .models import modelresolver
 
@@ -203,30 +206,87 @@ class OrganizationInvite(generics.UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         """ create, accept or reject an invite """
-        # import pdb; pdb.set_trace()
         org = self.get_object()
-        data = self.serializer_class(request.data).data
+        deserialized = self.serializer_class(data=request.data)
 
-        handle = data.get('handle')
+        if not deserialized.is_valid():
+            return response.Response(
+                deserialized.errors,
+                status=status.HTTP_400_BAD_REQUEST)
+
+        data = deserialized.data
+
+        handle = data.get('handle', None)
         email = handle if '@' in handle else ""
         role = data.get('role', 0)
         strict = data.get('strict', False)
 
-        if handle:
-            user = User.objects.filter(email=handle).first()
-            if not user:
-                user = User.objects.filter(username=handle).first()
+        user = User.objects.filter(email=handle).first()
+        if not user:
+            user = User.objects.filter(username=handle).first()
 
-            if user:
-                if org in user.organizations.all():
-                    return response.Response(
-                        {"non_field_errors": ["User is already member"]},
-                        status=status.HTTP_400_BAD_REQUEST)
-            invite = modelresolver('Invite')(user=user, email=email,
-                                          role=role, strict=strict,
-                                          organization=org)
-            invite.save()
+        if user:
+            if org in user.organizations.all():
+                return response.Response(
+                    {"non_field_errors": ["User is already member"]},
+                    status=status.HTTP_400_BAD_REQUEST)
+        elif not email:
+            return response.Response(
+                {"handle": ["Does not match user or existing email"]},
+                status=status.HTTP_400_BAD_REQUEST)
 
-            # if user and user.is_active:
-            #     user_password_reset.send_robust(sender=None, user=user)
+        invite = modelresolver('Invite')(user=user, email=email,
+                                         role=role, strict=strict,
+                                         organization=org)
+        invite.save()
+
+        # At this point we have a valid user or a somewhat valid email.
+        # Fire signal so email can be sent
+
+        if user and user.is_active:
+            user_existing_invite.send_robust(sender=org, invite=invite)
+        else:  # must be email
+            user_email_invite.send_robust(sender=org, invite=invite)
+        return Response({"status": "ok"})
+
+
+class OrganizationJoin(APIView):
+    serializer_class = JoinSerializer
+
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return self.model.objects.all()
+        return self.model.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        """ create, accept or reject an invite """
+        deserialized = self.serializer_class(data=request.data)
+
+        if not deserialized.is_valid():
+            return response.Response(
+                deserialized.errors,
+                status=status.HTTP_400_BAD_REQUEST)
+
+        data = deserialized.data
+
+        inviteclass = modelresolver('Invite')
+        membershipclass = modelresolver('Membership')
+
+        try:
+            invite = inviteclass.objects.get(token=data['token'])
+        except inviteclass.DoesNotExist:
+            raise Http404()
+
+        if data['action'] == self.serializer_class.JOIN_ACCEPT:
+            m, c = membershipclass.objects.get_or_create(
+                user=invite.user,
+                organization=invite.organization)
+            if not c:
+                return response.Response(
+                    {"non_field_errors": ["User is already member"]},
+                    status=status.HTTP_400_BAD_REQUEST)
+            m.role = invite.role
+            m.save()
+
+        invite.delete()
         return Response({"status": "ok"})

@@ -1,7 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import generics, response, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.permissions import BasePermission
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
@@ -21,6 +20,8 @@ from .signals import user_existing_invite, user_email_invite
 
 from .models import EmailVerification
 from .models import modelresolver
+
+from .permissions import OrganizationPermission
 
 
 class UserCreateView(generics.ListCreateAPIView):
@@ -194,13 +195,6 @@ class OrganizationDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return self.model.objects.all()
-
-
-class OrganizationPermission(BasePermission):
-
-    def has_permission(self, request, view):
-        return modelresolver('Membership').objects.filter(
-            organization=view.get_object(), user=request.user).exists()
 
 
 class OrganizationInvite(generics.CreateAPIView):

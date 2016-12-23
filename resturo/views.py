@@ -179,7 +179,7 @@ class EmailVerificationView(APIView):
 
 
 class OrganizationList(generics.ListCreateAPIView):
-    model = modelresolver.Organization
+    model = modelresolver("Organization")
     serializer_class = OrganizationSerializer
 
     def get_queryset(self):

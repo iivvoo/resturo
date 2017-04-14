@@ -8,6 +8,8 @@ user_rest_emailchange = Signal(providing_args=["user"])
 user_password_reset = Signal(providing_args=["user"])
 user_password_confirm = Signal(providing_args=["user"])
 
+user_email_verified = Signal(providing_args=["user"])
+
 user_existing_invite = Signal(providing_args=["Invite"])
 user_email_invite = Signal(providing_args=["Invite"])
 
@@ -23,6 +25,13 @@ def send_welcome_mail(sender, user, **kwargs):
 def send_email_verification(sender, user, **kwargs):
     if getattr(settings, "RESTURO_VERIFY_EMAIL", False):
         print("Email changed")
+
+
+@receiver(user_email_verified,
+          dispatch_uid="resturo.signals.handle_email_verified")
+def handle_email_verified(sender, user, **kwargs):
+    if getattr(settings, "RESTURO_VERIFY_EMAIL", False):
+        print("Email verified")
 
 
 @receiver(user_password_reset,

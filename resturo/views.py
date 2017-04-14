@@ -17,6 +17,7 @@ from .serializers import JoinSerializer
 from .signals import user_password_reset, user_rest_created
 from .signals import user_password_confirm, user_rest_emailchange
 from .signals import user_existing_invite, user_email_invite
+from .signals import user_email_verified
 
 from .models import EmailVerification
 from .models import modelresolver
@@ -171,6 +172,8 @@ class EmailVerificationView(APIView):
                 if not verification.verified:
                     verification.verified = True
                     verification.save()
+                    user_email_verified.send_robust(sender=None,
+                                                    user=verification.user)
                     return Response({"status": "ok"})
             except EmailVerification.DoesNotExist:
                 pass

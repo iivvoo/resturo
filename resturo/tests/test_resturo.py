@@ -1,4 +1,5 @@
 import unittest
+import uuid
 
 from django.test import TestCase
 from django.contrib.auth.models import User
@@ -118,7 +119,7 @@ class TestInviteModel(TestCase):
         self.assertEquals(len(i.token), 36)
 
     def test_token_update(self):
-        """ Updating an invite should change the token """
+        """ Updating an invite should not change the token """
         i = InviteFactory.create()
         token = i.token
         i.save()
@@ -243,6 +244,39 @@ class TestAcceptInvite(APITestCase):
                                                   ).exists())
         # The invite should be gone
         self.assertEquals(Invite.objects.count(), 0)
+
+    def test_invalid_token(self):
+        i = InviteFactory.create(user=self.u)
+
+        response = self.client.post(reverse('resturo_organization_join'),
+                                    {"token": str(uuid.uuid4()),
+                                     "action": JoinSerializer.JOIN_ACCEPT})
+
+        self.assertEquals(response.status_code, status.HTTP_404_NOT_FOUND)
+        # There should be a membership now
+        self.assertFalse(Membership.objects.filter(user=i.user,
+                                                   organization=i.organization
+                                                   ).exists())
+        # The invite should be left untouched
+        self.assertEquals(Invite.objects.count(), 1)
+
+    def test_empty_token(self):
+        """ an empty token is never acceptable, even if it matches an invite """
+        i = InviteFactory.create(user=self.u)
+        i.token = ''
+        i.save()
+
+        response = self.client.post(reverse('resturo_organization_join'),
+                                    {"token": '',
+                                     "action": JoinSerializer.JOIN_ACCEPT})
+
+        self.assertEquals(response.status_code, status.HTTP_404_NOT_FOUND)
+        # There should be a membership now
+        self.assertFalse(Membership.objects.filter(user=i.user,
+                                                   organization=i.organization
+                                                   ).exists())
+        # The invite should be left untouched
+        self.assertEquals(Invite.objects.count(), 1)
 
     def test_working_reject(self):
         i = InviteFactory.create()

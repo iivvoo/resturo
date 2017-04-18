@@ -270,7 +270,7 @@ class TestAcceptInvite(APITestCase):
                                     {"token": '',
                                      "action": JoinSerializer.JOIN_ACCEPT})
 
-        self.assertEquals(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
         # There should be a membership now
         self.assertFalse(Membership.objects.filter(user=i.user,
                                                    organization=i.organization

@@ -71,23 +71,23 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
         else:
             return self.model.objects.filter(id=self.request.user.id)
 
+    def handle_email_change(self, before, after):
+        if not getattr(settings, "RESTURO_VERIFY_EMAIL", False):
+            return
+
+        if before.email.strip().lower() != \
+           after.email.strip().lower():
+            verification, _ = EmailVerification.objects.get_or_create(
+                user=after)
+            verification.previous = before.email
+            verification.reset()
+            user_rest_emailchange.send_robust(sender=None, user=after)
+
     def update(self, request, *args, **kwargs):
         """ Check if email address has changed. If so, fire signal """
         instance_before = self.get_object()
         res = super().update(request, *args, **kwargs)
-
-        if not getattr(settings, "RESTURO_VERIFY_EMAIL", False):
-            return res
-
-        instance_after = self.get_object()
-
-        if instance_before.email.strip().lower() != \
-           instance_after.email.strip().lower():
-            verification, _ = EmailVerification.objects.get_or_create(
-                user=instance_after)
-            verification.previous = instance_before.email
-            verification.reset()
-            user_rest_emailchange.send_robust(sender=None, user=instance_after)
+        self.handle_email_change(instance_before, self.get_object())
         return res
 
 

@@ -71,12 +71,12 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
         else:
             return self.model.objects.filter(id=self.request.user.id)
 
-    def handle_email_change(self, before, after):
+    def handle_email_change(self, before, after, force=False):
         if not getattr(settings, "RESTURO_VERIFY_EMAIL", False):
             return
 
-        if before.email.strip().lower() != \
-           after.email.strip().lower():
+        if force or (before.email.strip().lower() !=
+           after.email.strip().lower()):
             verification, _ = EmailVerification.objects.get_or_create(
                 user=after)
             verification.previous = before.email

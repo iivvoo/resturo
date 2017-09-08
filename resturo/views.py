@@ -174,7 +174,7 @@ class EmailVerificationView(APIView):
                     verification.save()
                     user_email_verified.send_robust(sender=None,
                                                     user=verification.user)
-                    return Response({"status": "ok"})
+                return Response({"status": "ok"})
             except EmailVerification.DoesNotExist:
                 pass
         return response.Response({"non_field_errors": ["invalid token"]},
